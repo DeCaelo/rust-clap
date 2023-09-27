@@ -1,5 +1,5 @@
 use clap::{error::ErrorKind, Parser, CommandFactory};
-use std::fs;
+use std::{fs, path::PathBuf};
 
 /// Scaffold a new post for your blog
 #[derive(Parser, Debug)]
@@ -25,21 +25,22 @@ struct Args {
 
     /// Where to put the file
     #[clap(short, long , default_value = "content")]
-    output_dir: String,
+    output_dir: PathBuf,
 }
 
 fn main() {
     let args = Args::parse();
     dbg!(&args);
-    let filename = 
-        format!("{}/{}.md", args.output_dir, args.title);
+    let mut filename =  args.output_dir.join(&args.title);
+    filename.set_extension("md");
     
     if let Err(error) = fs::write(&filename, args.title) {
         let mut cmd = Args::command();
         cmd.error(
             ErrorKind::Io,
             format!(
-                "failed to write file at `{filename}`\n\t{}",
+                "failed to write file at `{}`\n\t{}",
+                filename.display(),
                 error
             ),
         )
