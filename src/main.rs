@@ -1,5 +1,6 @@
+use camino::Utf8PathBuf;
 use clap::{error::ErrorKind, Parser, CommandFactory};
-use std::{fs, path::PathBuf};
+use std::{fs};
 
 /// Scaffold a new post for your blog
 #[derive(Parser, Debug)]
@@ -25,12 +26,25 @@ struct Args {
 
     /// Where to put the file
     #[clap(short, long , default_value = "content")]
-    output_dir: PathBuf,
+    output_dir: Utf8PathBuf,
 }
 
 fn main() {
     let args = Args::parse();
     dbg!(&args);
+
+    if !args.output_dir.exists() {
+        let mut cmd = Args::command();
+        cmd.error(
+            ErrorKind::ValueValidation,
+            format!(
+                "put put directory `{}` doesn't exist",
+                args.output_dir
+            ),
+        )
+        .exit();
+    }
+
     let mut filename =  args.output_dir.join(&args.title);
     filename.set_extension("md");
     
@@ -39,9 +53,7 @@ fn main() {
         cmd.error(
             ErrorKind::Io,
             format!(
-                "failed to write file at `{}`\n\t{}",
-                filename.display(),
-                error
+                "failed to write file at `{filename}`\n\t{error}",
             ),
         )
         .exit();
