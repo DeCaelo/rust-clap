@@ -1,7 +1,7 @@
 use camino::Utf8PathBuf;
 use clap::{error::ErrorKind, Parser, CommandFactory};
+use serde::Serialize;
 use std::fs;
-use slug::slugify;
 
 /// Scaffold a new post for your blog
 #[derive(Parser, Debug)]
@@ -46,7 +46,8 @@ fn main() {
         .exit();
     }
 
-    let mut filename =  args.output_dir.join(&args.title);
+    let post_slug = slug::slugify(&args.title);
+    let mut filename =  args.output_dir.join(&post_slug);
     filename.set_extension("md");
 
     let frontmatter = Frontmatter {
@@ -54,11 +55,18 @@ fn main() {
         tags: args.tags,
         status: args.status,
         title: args.title.clone(),
-        slug: slug::slugify(&args.title),
+        slug: post_slug,
     };
-    dbg!(frontmatter);
+    let yaml = serde_yaml::to_string(&frontmatter).unwrap();
+    let file_contents = format!(
+        "{yaml}
+---
+
+# {}",
+        args.title
+    );
     
-    if let Err(error) = fs::write(&filename, args.title) {
+    if let Err(error) = fs::write(&filename, file_contents) {
         let mut cmd = Args::command();
         cmd.error(
             ErrorKind::Io,
@@ -70,7 +78,7 @@ fn main() {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 struct Frontmatter {
     layout: String,
     tags: Vec<String>,
